@@ -9,6 +9,8 @@ Every module follows four rules: **dry-run by default, idempotent, paginate + ti
 | `opskit.retry` | `@retry` with capped exponential backoff + full jitter; `is_transient()` for AWS/Azure/GCP/HTTP errors |
 | `opskit.safety` | `ChangeBudget` (dry-run + blast-radius cap), `is_protected(tags)`, `maintenance_window()` |
 | `opskit.aws` | adaptive-retry clients, `assume_role_session`, `paginate`, `enabled_regions`, `fan_out` (partial-failure safe) |
+| `opskit.inventory` | read-only regional AWS resource inventory with tags, Terraform tag metadata, JSON and optional Excel export |
+| `opskit.resource_insights` | service health snapshots, child counts, and CloudWatch metrics for supported AWS resource types |
 | `opskit.aws_lambda` | package Python code/dependencies for Lambda and guarded runtime/code updates |
 | `opskit.http` | `build_session()` - requests with retries on idempotent verbs and a mandatory timeout |
 | `opskit.k8s` | client loading (in-cluster/kubeconfig), `rollout_restart`, `wait_for_rollout`, `unhealthy_pods` |
@@ -25,6 +27,35 @@ python examples/aws_checks.py --region us-west-2 --fail-on high
 python examples/ebs_cleanup.py --accounts 111111111111 --role OrgOps            # dry run
 python examples/ebs_cleanup.py --accounts 111111111111 --role OrgOps --apply --max-changes 20
 ```
+
+Collect tagged resources and export an inventory for review. Terraform workspace, project, and module details are inferred from resource tags; AWS does not expose Terraform state through this API. Excel export requires the optional `excel` extra.
+
+```python
+from opskit.inventory import collect_inventory, write_inventory_excel, write_inventory_json
+
+inventory = collect_inventory(["us-east-1", "us-west-2"])
+write_inventory_json(inventory, "aws-inventory.json")
+write_inventory_excel(inventory, "aws-inventory.xlsx")  # pip install opskit[excel]
+```
+
+The caller needs `sts:GetCallerIdentity` and Resource Groups Tagging API read access (`tag:GetResources`) in each region. The inventory includes tagged resources returned by that API, not a guarantee of every untagged resource in the account.
+
+Resource insights use service APIs for EC2 instance/volume, RDS DB instance, and Lambda health; child counts are supported for EC2 instances and RDS clusters. CloudWatch metric profiles are provided for EC2 instances, EBS volumes, RDS DB instances, and Lambda functions.
+
+```python
+from opskit.resource_insights import (
+	get_basic_resource_metrics,
+	get_child_resource_type_counts,
+	get_resource_health,
+)
+
+resource = inventory["resources"][0]
+health = get_resource_health(resource)
+children = get_child_resource_type_counts(resource)
+metrics = get_basic_resource_metrics(resource, lookback_hours=24)
+```
+
+The insight helpers need the corresponding read actions: `ec2:DescribeInstanceStatus`, `ec2:DescribeInstances`, `ec2:DescribeVolumeStatus`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `lambda:GetFunctionConfiguration`, and `cloudwatch:GetMetricStatistics`.
 
 Build a Lambda deployment ZIP from a handler directory and its `requirements.txt`:
 
