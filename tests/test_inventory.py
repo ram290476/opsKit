@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import boto3
 from moto import mock_aws
 
+import opsclient.inventory as inventory_client_module
 from opskit.inventory import collect_inventory, write_inventory_excel, write_inventory_json
 from opskit.resource_insights import (
     get_basic_resource_metrics,
@@ -44,6 +45,49 @@ def test_collect_inventory_and_write_json(tmp_path):
 
     path = write_inventory_json(inventory, tmp_path / "reports" / "inventory.json")
     assert json.loads(path.read_text()) == inventory
+
+
+def test_collect_account_inventory_uses_profile_and_enabled_regions(monkeypatch):
+    class FakeEc2:
+        def describe_regions(self, **kwargs):
+            assert kwargs["Filters"] == [{
+                "Name": "opt-in-status",
+                "Values": ["opt-in-not-required", "opted-in"],
+            }]
+            return {"Regions": [
+                {"RegionName": "us-west-2"},
+                {"RegionName": "us-east-1"},
+            ]}
+
+    class FakeSession:
+        def __init__(self):
+            self.profile = None
+
+        def client(self, service, **kwargs):
+            assert service == "ec2"
+            assert kwargs["region_name"] == "us-east-1"
+            return FakeEc2()
+
+    session = FakeSession()
+    monkeypatch.setattr(
+        inventory_client_module,
+        "create_session",
+        lambda profile_name=None: setattr(session, "profile", profile_name) or session,
+    )
+    collected = {}
+
+    def fake_collect(regions, actual_session):
+        collected["regions"] = list(regions)
+        collected["session"] = actual_session
+        return {"resources": []}
+
+    monkeypatch.setattr(inventory_client_module, "collect_inventory", fake_collect)
+
+    result = inventory_client_module.collect_account_inventory(profile_name="personal")
+
+    assert result == {"resources": []}
+    assert session.profile == "personal"
+    assert collected == {"regions": ["us-west-2", "us-east-1"], "session": session}
 
 
 @mock_aws

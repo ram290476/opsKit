@@ -9,8 +9,9 @@ Every module follows four rules: **dry-run by default, idempotent, paginate + ti
 | `opskit.retry` | `@retry` with capped exponential backoff + full jitter; `is_transient()` for AWS/Azure/GCP/HTTP errors |
 | `opskit.safety` | `ChangeBudget` (dry-run + blast-radius cap), `is_protected(tags)`, `maintenance_window()` |
 | `opskit.aws` | adaptive-retry clients, `assume_role_session`, `paginate`, `enabled_regions`, `fan_out` (partial-failure safe) |
-| `opskit.inventory` | read-only regional AWS resource inventory with tags, Terraform tag metadata, JSON and optional Excel export |
-| `opskit.resource_insights` | service health snapshots, child counts, and CloudWatch metrics for supported AWS resource types |
+| `opsclient` | separate top-level import package for boto3 clients, inventory, and resource insights; distributed with `opskit` |
+| `opskit.inventory` | JSON and optional Excel inventory exporters (client functions remain available as compatibility imports) |
+| `opskit.resource_insights` | compatibility imports for service health, child counts, and CloudWatch metric helpers |
 | `opskit.aws_lambda` | package Python code/dependencies for Lambda and guarded runtime/code updates |
 | `opskit.http` | `build_session()` - requests with retries on idempotent verbs and a mandatory timeout |
 | `opskit.k8s` | client loading (in-cluster/kubeconfig), `rollout_restart`, `wait_for_rollout`, `unhealthy_pods` |
@@ -31,19 +32,22 @@ python examples/ebs_cleanup.py --accounts 111111111111 --role OrgOps --apply --m
 Collect tagged resources and export an inventory for review. Terraform workspace, project, and module details are inferred from resource tags; AWS does not expose Terraform state through this API. Excel export requires the optional `excel` extra.
 
 ```python
-from opskit.inventory import collect_inventory, write_inventory_excel, write_inventory_json
+from opsclient.inventory import collect_account_inventory
+from opskit.inventory import write_inventory_excel, write_inventory_json
 
-inventory = collect_inventory(["us-east-1", "us-west-2"])
+inventory = collect_account_inventory(profile_name="personal")  # uses ~/.aws/config and credentials
+# Or use the default boto3 credential chain and choose regions explicitly:
+inventory = collect_account_inventory(regions=["us-east-1", "us-west-2"])
 write_inventory_json(inventory, "aws-inventory.json")
 write_inventory_excel(inventory, "aws-inventory.xlsx")  # pip install opskit[excel]
 ```
 
-The caller needs `sts:GetCallerIdentity` and Resource Groups Tagging API read access (`tag:GetResources`) in each region. The inventory includes tagged resources returned by that API, not a guarantee of every untagged resource in the account.
+Configure credentials locally with `aws configure --profile personal` or another supported boto3 credential source; opskit does not accept or store secrets. The caller needs `ec2:DescribeRegions` when regions are discovered, `sts:GetCallerIdentity`, and Resource Groups Tagging API read access (`tag:GetResources`) in each region. The inventory includes tagged resources returned by that API, not a guarantee of every untagged resource in the account.
 
 Resource insights use service APIs for EC2 instance/volume, RDS DB instance, and Lambda health; child counts are supported for EC2 instances and RDS clusters. CloudWatch metric profiles are provided for EC2 instances, EBS volumes, RDS DB instances, and Lambda functions.
 
 ```python
-from opskit.resource_insights import (
+from opsclient.resource_insights import (
 	get_basic_resource_metrics,
 	get_child_resource_type_counts,
 	get_resource_health,
