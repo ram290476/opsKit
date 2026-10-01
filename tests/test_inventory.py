@@ -162,51 +162,37 @@ def test_resource_insights_for_ec2_instance():
     assert metrics["metrics"]["CPUUtilization"]["latest_value"] == 37.5
 
 
-def test_opsclient_inventory_command_delegates_to_opskit(monkeypatch, tmp_path, capsys):
-    calls = {}
-    inventory = {"account_id": "123456789012", "resources": [{"arn": "arn:one"}], "errors": {}}
+def test_opsclient_runs_inventory_and_insights_with_fixed_defaults(monkeypatch, capsys):
+    from pathlib import Path
+
+    resource = {"arn": "arn:one"}
+    inventory = {"account_id": "123456789012", "resources": [resource], "errors": {}}
+    calls = []
 
     def collect_account_inventory(profile_name, regions):
-        calls["collect"] = (profile_name, regions)
+        calls.append(("collect", profile_name, regions))
         return inventory
 
-    def write_json(value, destination):
-        calls["json"] = (value, destination)
-        return destination
-
     monkeypatch.setattr("opsclient.cli.collect_account_inventory", collect_account_inventory)
-    monkeypatch.setattr("opsclient.cli.write_inventory_json", write_json)
-
-    exit_code = opsclient_main([
-        "inventory", "--profile", "personal", "--region", "us-west-2",
-        "--json", str(tmp_path / "inventory.json"),
-    ])
-
-    assert exit_code == 0
-    assert calls["collect"] == ("personal", ["us-west-2"])
-    assert calls["json"] == (inventory, tmp_path / "inventory.json")
-    assert '"resource_count": 1' in capsys.readouterr().out
-
-
-def test_opsclient_inspect_command_delegates_to_opskit(monkeypatch, tmp_path, capsys):
-    inventory_path = tmp_path / "inventory.json"
-    inventory_path.write_text(json.dumps({"resources": [{"arn": "arn:one"}]}))
-    calls = []
-    monkeypatch.setattr("opsclient.cli.create_session", lambda profile_name: profile_name)
+    monkeypatch.setattr("opsclient.cli.write_inventory_json",
+                        lambda value, destination: destination)
+    monkeypatch.setattr("opsclient.cli.create_session",
+                        lambda profile_name: calls.append(("session", profile_name)) or "session")
     monkeypatch.setattr("opsclient.cli.get_resource_health",
-                        lambda resource, session: calls.append(("health", resource, session)) or {})
+                        lambda value, session: calls.append(("health", value, session)) or {})
     monkeypatch.setattr("opsclient.cli.get_child_resource_type_counts",
-                        lambda resource, session: calls.append(("children", resource, session)) or {})
+                        lambda value, session: calls.append(("children", value, session)) or {})
     monkeypatch.setattr("opsclient.cli.get_basic_resource_metrics",
-                        lambda resource, session, **kwargs:
-                        calls.append(("metrics", resource, session, kwargs)) or {})
+                        lambda value, session, **kwargs:
+                        calls.append(("metrics", value, session, kwargs)) or {})
 
-    exit_code = opsclient_main([
-        "inspect", "--inventory", str(inventory_path), "--arn", "arn:one",
-        "--profile", "personal", "--lookback-hours", "12",
-    ])
+    exit_code = opsclient_main()
 
     assert exit_code == 0
-    assert [call[0] for call in calls] == ["health", "children", "metrics"]
-    assert calls[-1][3] == {"lookback_hours": 12, "period_seconds": 3600}
-    assert '"resource"' in capsys.readouterr().out
+    assert calls[:2] == [("collect", "default", None), ("session", "default")]
+    assert [call[0] for call in calls[2:]] == ["health", "children", "metrics"]
+    assert calls[-1][3] == {"lookback_hours": 24, "period_seconds": 3600}
+    output = json.loads(capsys.readouterr().out)
+    assert output["resource_count"] == 1
+    assert output["inventory_json"] == str(Path("aws-inventory.json"))
+    assert output["insights"][0]["resource"] == resource
