@@ -1,2 +1,2 @@
-"""Compatibility exports for the top-level opsclient package."""
-from opsclient.aws import DEFAULT_CONFIG, assume_role_session, client, create_session, paginate
+"""Compatibility exports for shared AWS helpers in opskit."""
+from ..aws import DEFAULT_CONFIG, assume_role_session, client, create_session, paginate

@@ -4,13 +4,19 @@ from datetime import datetime, timedelta, timezone
 import boto3
 from moto import mock_aws
 
-import opsclient.inventory as inventory_client_module
-from opskit.inventory import collect_inventory, write_inventory_excel, write_inventory_json
+import opskit.inventory as inventory_module
+from opskit.inventory import (
+    collect_account_inventory,
+    collect_inventory,
+    write_inventory_excel,
+    write_inventory_json,
+)
 from opskit.resource_insights import (
     get_basic_resource_metrics,
     get_child_resource_type_counts,
     get_resource_health,
 )
+from opsclient.cli import main as opsclient_main
 
 
 @mock_aws
@@ -70,7 +76,7 @@ def test_collect_account_inventory_uses_profile_and_enabled_regions(monkeypatch)
 
     session = FakeSession()
     monkeypatch.setattr(
-        inventory_client_module,
+        inventory_module,
         "create_session",
         lambda profile_name=None: setattr(session, "profile", profile_name) or session,
     )
@@ -81,9 +87,9 @@ def test_collect_account_inventory_uses_profile_and_enabled_regions(monkeypatch)
         collected["session"] = actual_session
         return {"resources": []}
 
-    monkeypatch.setattr(inventory_client_module, "collect_inventory", fake_collect)
+    monkeypatch.setattr(inventory_module, "collect_inventory", fake_collect)
 
-    result = inventory_client_module.collect_account_inventory(profile_name="personal")
+    result = collect_account_inventory(profile_name="personal")
 
     assert result == {"resources": []}
     assert session.profile == "personal"
@@ -154,3 +160,53 @@ def test_resource_insights_for_ec2_instance():
     metrics = get_basic_resource_metrics(resource, session, lookback_hours=2)
     assert metrics["supported"]
     assert metrics["metrics"]["CPUUtilization"]["latest_value"] == 37.5
+
+
+def test_opsclient_inventory_command_delegates_to_opskit(monkeypatch, tmp_path, capsys):
+    calls = {}
+    inventory = {"account_id": "123456789012", "resources": [{"arn": "arn:one"}], "errors": {}}
+
+    def collect_account_inventory(profile_name, regions):
+        calls["collect"] = (profile_name, regions)
+        return inventory
+
+    def write_json(value, destination):
+        calls["json"] = (value, destination)
+        return destination
+
+    monkeypatch.setattr("opsclient.cli.collect_account_inventory", collect_account_inventory)
+    monkeypatch.setattr("opsclient.cli.write_inventory_json", write_json)
+
+    exit_code = opsclient_main([
+        "inventory", "--profile", "personal", "--region", "us-west-2",
+        "--json", str(tmp_path / "inventory.json"),
+    ])
+
+    assert exit_code == 0
+    assert calls["collect"] == ("personal", ["us-west-2"])
+    assert calls["json"] == (inventory, tmp_path / "inventory.json")
+    assert '"resource_count": 1' in capsys.readouterr().out
+
+
+def test_opsclient_inspect_command_delegates_to_opskit(monkeypatch, tmp_path, capsys):
+    inventory_path = tmp_path / "inventory.json"
+    inventory_path.write_text(json.dumps({"resources": [{"arn": "arn:one"}]}))
+    calls = []
+    monkeypatch.setattr("opsclient.cli.create_session", lambda profile_name: profile_name)
+    monkeypatch.setattr("opsclient.cli.get_resource_health",
+                        lambda resource, session: calls.append(("health", resource, session)) or {})
+    monkeypatch.setattr("opsclient.cli.get_child_resource_type_counts",
+                        lambda resource, session: calls.append(("children", resource, session)) or {})
+    monkeypatch.setattr("opsclient.cli.get_basic_resource_metrics",
+                        lambda resource, session, **kwargs:
+                        calls.append(("metrics", resource, session, kwargs)) or {})
+
+    exit_code = opsclient_main([
+        "inspect", "--inventory", str(inventory_path), "--arn", "arn:one",
+        "--profile", "personal", "--lookback-hours", "12",
+    ])
+
+    assert exit_code == 0
+    assert [call[0] for call in calls] == ["health", "children", "metrics"]
+    assert calls[-1][3] == {"lookback_hours": 12, "period_seconds": 3600}
+    assert '"resource"' in capsys.readouterr().out

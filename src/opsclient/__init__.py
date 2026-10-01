@@ -1,1 +1,1 @@
-"""AWS client operations distributed alongside opskit under a separate namespace."""
+"""Console application for invoking opskit AWS inventory and insight APIs."""

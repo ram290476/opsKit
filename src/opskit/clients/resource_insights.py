@@ -85,8 +85,8 @@ def get_child_resource_type_counts(resource: dict[str, Any],
     if service == "ec2" and resource_type == "instance":
         ec2 = client("ec2", region=resource["region"], session=session)
         reservations = ec2.describe_instances(InstanceIds=[resource_id]).get("Reservations", [])
-        """Compatibility exports for resource insights in opsclient."""
-        from opsclient.resource_insights import (
+        """Compatibility exports for resource insights in opskit."""
+        from ..resource_insights import (
             get_basic_resource_metrics,
             get_child_resource_type_counts,
             get_resource_health,

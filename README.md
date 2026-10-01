@@ -9,9 +9,9 @@ Every module follows four rules: **dry-run by default, idempotent, paginate + ti
 | `opskit.retry` | `@retry` with capped exponential backoff + full jitter; `is_transient()` for AWS/Azure/GCP/HTTP errors |
 | `opskit.safety` | `ChangeBudget` (dry-run + blast-radius cap), `is_protected(tags)`, `maintenance_window()` |
 | `opskit.aws` | adaptive-retry clients, `assume_role_session`, `paginate`, `enabled_regions`, `fan_out` (partial-failure safe) |
-| `opsclient` | separate top-level import package for boto3 clients, inventory, and resource insights; distributed with `opskit` |
-| `opskit.inventory` | JSON and optional Excel inventory exporters (client functions remain available as compatibility imports) |
-| `opskit.resource_insights` | compatibility imports for service health, child counts, and CloudWatch metric helpers |
+| `opsclient` | console application that invokes `opskit` inventory and resource-insight APIs |
+| `opskit.inventory` | tagged AWS inventory collection, JSON and optional Excel exporters |
+| `opskit.resource_insights` | service health, child counts, and CloudWatch metric helpers |
 | `opskit.aws_lambda` | package Python code/dependencies for Lambda and guarded runtime/code updates |
 | `opskit.http` | `build_session()` - requests with retries on idempotent verbs and a mandatory timeout |
 | `opskit.k8s` | client loading (in-cluster/kubeconfig), `rollout_restart`, `wait_for_rollout`, `unhealthy_pods` |
@@ -29,18 +29,14 @@ python examples/ebs_cleanup.py --accounts 111111111111 --role OrgOps            
 python examples/ebs_cleanup.py --accounts 111111111111 --role OrgOps --apply --max-changes 20
 ```
 
-Collect tagged resources and export an inventory for review. Terraform workspace, project, and module details are inferred from resource tags; AWS does not expose Terraform state through this API. Excel export requires the optional `excel` extra.
+Collect tagged resources and export an inventory for review. Terraform workspace, project, and module details are inferred from resource tags; AWS does not expose Terraform state through this API. Excel export requires the optional `excel` extra. Install the console command with `pip install -e .`.
 
 ```python
-from opsclient.inventory import collect_account_inventory
-from opskit.inventory import write_inventory_excel, write_inventory_json
-
-inventory = collect_account_inventory(profile_name="personal")  # uses ~/.aws/config and credentials
-# Or use the default boto3 credential chain and choose regions explicitly:
-inventory = collect_account_inventory(regions=["us-east-1", "us-west-2"])
-write_inventory_json(inventory, "aws-inventory.json")
-write_inventory_excel(inventory, "aws-inventory.xlsx")  # pip install opskit[excel]
+opsclient inventory --profile personal --region us-east-1 --json aws-inventory.json --excel aws-inventory.xlsx
+opsclient inspect --inventory aws-inventory.json --arn arn:aws:ec2:us-east-1:123456789012:instance/i-0123456789abcdef0 --profile personal
 ```
+
+The library APIs remain available directly from `opskit.inventory` and `opskit.resource_insights`; `opsclient` only handles command-line arguments and delegates to those functions.
 
 Configure credentials locally with `aws configure --profile personal` or another supported boto3 credential source; opskit does not accept or store secrets. The caller needs `ec2:DescribeRegions` when regions are discovered, `sts:GetCallerIdentity`, and Resource Groups Tagging API read access (`tag:GetResources`) in each region. The inventory includes tagged resources returned by that API, not a guarantee of every untagged resource in the account.
 
