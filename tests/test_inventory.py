@@ -5,6 +5,7 @@ import boto3
 from moto import mock_aws
 
 import opskit.inventory as inventory_module
+from opsclient.cli import main as opsclient_main
 from opskit.inventory import (
     collect_account_inventory,
     collect_inventory,
@@ -16,7 +17,6 @@ from opskit.resource_insights import (
     get_child_resource_type_counts,
     get_resource_health,
 )
-from opsclient.cli import main as opsclient_main
 
 
 @mock_aws
@@ -162,37 +162,69 @@ def test_resource_insights_for_ec2_instance():
     assert metrics["metrics"]["CPUUtilization"]["latest_value"] == 37.5
 
 
-def test_opsclient_runs_inventory_and_insights_with_fixed_defaults(monkeypatch, capsys):
-    from pathlib import Path
-
+def test_opsclient_calls_rest_api_for_inventory_and_insights(monkeypatch, capsys, tmp_path):
     resource = {"arn": "arn:one"}
     inventory = {"account_id": "123456789012", "resources": [resource], "errors": {}}
-    calls = []
+    insights = [{"resource": resource, "health": {}, "children": {}, "metrics": {}}]
+    calls: list[tuple] = []
 
-    def collect_account_inventory(profile_name, regions):
-        calls.append(("collect", profile_name, regions))
-        return inventory
+    def fake_api_request(api_url, method, path, params=None, body=None):
+        calls.append((api_url, method, path, params, body))
+        if path == "/aws/inventory":
+            return inventory
+        return insights
 
-    monkeypatch.setattr("opsclient.cli.collect_account_inventory", collect_account_inventory)
-    monkeypatch.setattr("opsclient.cli.write_inventory_json",
-                        lambda value, destination: destination)
-    monkeypatch.setattr("opsclient.cli.create_session",
-                        lambda profile_name: calls.append(("session", profile_name)) or "session")
-    monkeypatch.setattr("opsclient.cli.get_resource_health",
-                        lambda value, session: calls.append(("health", value, session)) or {})
-    monkeypatch.setattr("opsclient.cli.get_child_resource_type_counts",
-                        lambda value, session: calls.append(("children", value, session)) or {})
-    monkeypatch.setattr("opsclient.cli.get_basic_resource_metrics",
-                        lambda value, session, **kwargs:
-                        calls.append(("metrics", value, session, kwargs)) or {})
+    monkeypatch.setattr("opsclient.cli.api_request", fake_api_request)
+    destination = tmp_path / "aws-inventory.json"
 
-    exit_code = opsclient_main()
+    exit_code = opsclient_main([
+        "--api-url", "http://api.example.test", "aws", "--profile", "personal",
+        "--json", str(destination),
+    ])
 
     assert exit_code == 0
-    assert calls[:2] == [("collect", "default", None), ("session", "default")]
-    assert [call[0] for call in calls[2:]] == ["health", "children", "metrics"]
-    assert calls[-1][3] == {"lookback_hours": 24, "period_seconds": 3600}
+    assert calls == [
+        ("http://api.example.test", "POST", "/aws/inventory", None,
+         {"profile_name": "personal", "regions": None}),
+        ("http://api.example.test", "POST", "/aws/insights", None, {
+            "profile_name": "personal",
+            "resources": [resource],
+            "lookback_hours": 24,
+            "period_seconds": 3600,
+        }),
+    ]
     output = json.loads(capsys.readouterr().out)
     assert output["resource_count"] == 1
-    assert output["inventory_json"] == str(Path("aws-inventory.json"))
-    assert output["insights"][0]["resource"] == resource
+    assert output["inventory_json"] == str(destination)
+    assert output["insights"] == insights
+    assert json.loads(destination.read_text()) == inventory
+
+
+def test_opsclient_calls_kubernetes_logs_api(monkeypatch, capsys):
+    calls = []
+
+    def fake_api_request(api_url, method, path, params=None, body=None):
+        calls.append((api_url, method, path, params, body))
+        return {"logs": "pod output"}
+
+    monkeypatch.setattr("opsclient.cli.api_request", fake_api_request)
+    exit_code = opsclient_main([
+        "k8s", "logs", "api-123", "--namespace", "team-a",
+        "--container", "api", "--tail-lines", "50",
+    ])
+
+    assert exit_code == 0
+    assert calls == [(
+        "http://127.0.0.1:8000",
+        "GET",
+        "/kubernetes/pods/team-a/api-123/logs",
+        {
+            "container": "api",
+            "tail_lines": 50,
+            "since_seconds": None,
+            "timestamps": False,
+            "previous": False,
+        },
+        None,
+    )]
+    assert capsys.readouterr().out == "pod output"

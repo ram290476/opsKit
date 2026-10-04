@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime, timezone
+from typing import Any
 
 
 def load_clients():
@@ -12,6 +13,52 @@ def load_clients():
     except config.ConfigException:
         config.load_kube_config()
     return client.CoreV1Api(), client.AppsV1Api()
+
+
+def list_namespaces(core: Any, request_timeout_s: int = 30) -> list[Any]:
+    """Return Kubernetes namespaces using the supplied CoreV1 API client."""
+    return core.list_namespace(_request_timeout=request_timeout_s).items
+
+
+def list_pods(core: Any, namespace: str | None = None, label_selector: str = "",
+              request_timeout_s: int = 30) -> list[Any]:
+    """Return pods in one namespace, or across all namespaces when omitted."""
+    if namespace is not None:
+        response = core.list_namespaced_pod(
+            namespace, label_selector=label_selector, _request_timeout=request_timeout_s)
+    else:
+        response = core.list_pod_for_all_namespaces(
+            label_selector=label_selector, _request_timeout=request_timeout_s)
+    return response.items
+
+
+def list_events(core: Any, namespace: str | None = None, field_selector: str = "",
+                request_timeout_s: int = 30) -> list[Any]:
+    """Return events in one namespace, or across all namespaces when omitted."""
+    if namespace is not None:
+        response = core.list_namespaced_event(
+            namespace, field_selector=field_selector, _request_timeout=request_timeout_s)
+    else:
+        response = core.list_event_for_all_namespaces(
+            field_selector=field_selector, _request_timeout=request_timeout_s)
+    return response.items
+
+
+def get_pod_logs(core: Any, name: str, namespace: str, container: str | None = None,
+                 tail_lines: int | None = None, since_seconds: int | None = None,
+                 timestamps: bool = False, previous: bool = False,
+                 request_timeout_s: int = 30) -> str:
+    """Read logs for a pod container; Kubernetes API errors are allowed to propagate."""
+    return core.read_namespaced_pod_log(
+        name=name,
+        namespace=namespace,
+        container=container,
+        tail_lines=tail_lines,
+        since_seconds=since_seconds,
+        timestamps=timestamps,
+        previous=previous,
+        _request_timeout=request_timeout_s,
+    )
 
 
 def rollout_restart(apps, name: str, namespace: str) -> None:

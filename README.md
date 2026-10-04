@@ -9,12 +9,12 @@ Every module follows four rules: **dry-run by default, idempotent, paginate + ti
 | `opskit.retry` | `@retry` with capped exponential backoff + full jitter; `is_transient()` for AWS/Azure/GCP/HTTP errors |
 | `opskit.safety` | `ChangeBudget` (dry-run + blast-radius cap), `is_protected(tags)`, `maintenance_window()` |
 | `opskit.aws` | adaptive-retry clients, `assume_role_session`, `paginate`, `enabled_regions`, `fan_out` (partial-failure safe) |
-| `opsclient` | console application that invokes `opskit` inventory and resource-insight APIs |
+| `opsclient` | REST API server and console client for AWS inventory/insights and Kubernetes operations |
 | `opskit.inventory` | tagged AWS inventory collection, JSON and optional Excel exporters |
 | `opskit.resource_insights` | service health, child counts, and CloudWatch metric helpers |
 | `opskit.aws_lambda` | package Python code/dependencies for Lambda and guarded runtime/code updates |
 | `opskit.http` | `build_session()` - requests with retries on idempotent verbs and a mandatory timeout |
-| `opskit.k8s` | client loading (in-cluster/kubeconfig), `rollout_restart`, `wait_for_rollout`, `unhealthy_pods` |
+| `opskit.k8s` | client loading (in-cluster/kubeconfig), namespace/pod/event listing and pod logs, `rollout_restart`, `wait_for_rollout`, `unhealthy_pods` |
 | `opskit.metrics` | `job_metrics()` - duration / success / last-success gauges for batch jobs (Pushgateway) |
 | `opskit.notify` | webhook notifier (URL from env/secret store) |
 | `opskit.checks` | `@check` registry + `run_checks()` -> report with CI exit codes (0 pass, 1 findings, 2 check crashed) |
@@ -22,8 +22,11 @@ Every module follows four rules: **dry-run by default, idempotent, paginate + ti
 Examples: `examples/ebs_cleanup.py` (multi-account cleanup with guard rails) and `examples/aws_checks.py` (guardrail checks as a CI gate).
 
 ```bash
-uv venv && uv pip install -e ".[dev,k8s,metrics]"    # or: pip install -e ".[dev]"
+uv venv && uv pip install -e ".[dev,k8s,api,metrics]"    # or: pip install -e ".[dev]"
 pytest -q                                             # runs fully offline against moto
+opsclient serve                                      # local REST API on 127.0.0.1:8000
+opsclient aws --profile personal
+opsclient k8s namespaces
 python examples/aws_checks.py --region us-west-2 --fail-on high
 python examples/ebs_cleanup.py --accounts 111111111111 --role OrgOps            # dry run
 python examples/ebs_cleanup.py --accounts 111111111111 --role OrgOps --apply --max-changes 20
@@ -32,11 +35,12 @@ python examples/ebs_cleanup.py --accounts 111111111111 --role OrgOps --apply --m
 Collect tagged resources and export an inventory for review. Terraform workspace, project, and module details are inferred from resource tags; AWS does not expose Terraform state through this API. Excel export requires the optional `excel` extra. Install the console command with `pip install -e .`.
 
 ```python
-opsclient inventory --profile personal --region us-east-1 --json aws-inventory.json --excel aws-inventory.xlsx
-opsclient inspect --inventory aws-inventory.json --arn arn:aws:ec2:us-east-1:123456789012:instance/i-0123456789abcdef0 --profile personal
+opsclient aws --profile personal --region us-east-1 --json aws-inventory.json
 ```
 
-The library APIs remain available directly from `opskit.inventory` and `opskit.resource_insights`; `opsclient` only handles command-line arguments and delegates to those functions.
+`opskit.api` exposes AWS inventory and resource insights at `/aws/inventory` and `/aws/insights`, and Kubernetes operations under `/kubernetes`. Start it with `opsclient serve` after installing `opskit[api]` (and `opskit[k8s]` for Kubernetes). The CLI sends requests to `OPSKIT_API_URL`, defaulting to `http://127.0.0.1:8000`; set `--api-url` to override it. For example, `opsclient k8s pods --namespace default --label-selector app=api`, `opsclient k8s events`, and `opsclient k8s logs api-123 --namespace default --container api --tail-lines 100`. The API has no built-in authentication, so keep the server bound to localhost unless it is protected by a trusted network/authentication layer.
+
+The library APIs remain available directly from `opskit.inventory`, `opskit.resource_insights`, and `opskit.k8s` for in-process use.
 
 Configure credentials locally with `aws configure --profile personal` or another supported boto3 credential source; opskit does not accept or store secrets. The caller needs `ec2:DescribeRegions` when regions are discovered, `sts:GetCallerIdentity`, and Resource Groups Tagging API read access (`tag:GetResources`) in each region. The inventory includes tagged resources returned by that API, not a guarantee of every untagged resource in the account.
 
@@ -56,6 +60,20 @@ metrics = get_basic_resource_metrics(resource, lookback_hours=24)
 ```
 
 The insight helpers need the corresponding read actions: `ec2:DescribeInstanceStatus`, `ec2:DescribeInstances`, `ec2:DescribeVolumeStatus`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `lambda:GetFunctionConfiguration`, and `cloudwatch:GetMetricStatistics`.
+
+Kubernetes helpers use the optional `k8s` extra and the current in-cluster identity or kubeconfig. Read operations return Kubernetes API objects (or log text); list helpers accept an optional namespace to query all namespaces when omitted. Calls have a 30-second default request timeout that can be overridden.
+
+```python
+from opskit.k8s import get_pod_logs, list_events, list_namespaces, list_pods, load_clients
+
+core, apps = load_clients()
+namespaces = list_namespaces(core)
+pods = list_pods(core, namespace="default", label_selector="app=api")
+events = list_events(core, namespace="default", field_selector="type=Warning")
+logs = get_pod_logs(core, "api-123", "default", container="api", tail_lines=100)
+```
+
+The Kubernetes identity needs RBAC `list` access to namespaces, pods, and events, plus `get` access to `pods/log` for log retrieval.
 
 Build a Lambda deployment ZIP from a handler directory and its `requirements.txt`:
 
