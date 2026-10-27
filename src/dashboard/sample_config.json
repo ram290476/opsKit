@@ -1,0 +1,19 @@
+{
+  "cluster_name": "prod-eks-usw2",
+  "region": "us-west-2",
+  "platform": "eks",
+  "namespaces": ["shop", "kube-system"],
+  "prometheus_url": "https://aps-workspaces.us-west-2.amazonaws.com/workspaces/ws-00000000-0000-0000-0000-000000000000",
+  "use_container_insights": true,
+  "load_balancers": [
+    {"name": "alb-prod-web", "arn_suffix": "app/alb-prod-web/0123456789abcdef", "kind": "ALB",
+     "target_groups": ["targetgroup/tg-checkout/0123456789abcdef"]},
+    {"name": "nlb-internal-grpc", "arn_suffix": "net/nlb-internal-grpc/fedcba9876543210", "kind": "NLB"}
+  ],
+  "window_minutes": 30,
+  "step_seconds": 60,
+  "thresholds": {
+    "load_balancer": {"http_5xx": {"warn": 10, "critical": 100}},
+    "pod": {"p95_latency_ms": {"warn": 250, "critical": 800}}
+  }
+}
