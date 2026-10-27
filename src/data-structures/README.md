@@ -4,6 +4,17 @@ Every Python code sample from **Data Structures Interview Questions - Platform a
 
 **Source document:** `/workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx` (PDF render: `Data_Structures_Interview_Questions_Platform_SRE.pdf` in the same folder). The original was not modified.
 
+## Why these patterns matter for SRE work
+
+These aren't just interview puzzles. Each pattern below is something you'll use when running production systems.
+
+- **Heaps and priority queues** (`01`, `07`, `08`, `21`, `24`, `29`): Schedulers, job runners and alert routers all need to pull the next most urgent or earliest-deadline item quickly. A min-heap gives you that in O(log n) per operation, which is how cron-like task schedulers, retry queues and Dijkstra-style lowest-latency routing work.
+- **Hash maps for caching and dedup** (`09`, `10`, `11`, `27`, `33`, `34`, `36`, `37`): O(1) lookups power LRU/LFU caches, idempotency keys that stop a retried request from charging twice, and alert dedup that keeps one noisy failure from paging ten times. Hash map plus doubly linked list is the standard way to build an LRU eviction policy.
+- **Interval sort-and-sweep** (`01`–`06`, `29`): Sort start and end events, then sweep through them, to answer capacity questions. These include how many VMs or rooms you need at peak, whether maintenance windows overlap, and how to merge or insert change-freeze periods. It's the core of capacity planning and change-calendar conflict checks.
+- **Running min/max tracking** (`02`, `04`, `05`, `06`, `11`, `15`, `24`): Keeping a running peak or floor in one pass is how monitoring checks thresholds, like peak concurrency, worst latency in a window, or the lowest free capacity, without storing every data point.
+- **TTL caches** (`36`, `37`, and `TTLCache` in `wrappers.py`): Entries that expire on their own model DNS and config caching, idempotency windows, and alert suppression ("don't re-fire this alert for 10 minutes"). Passing the clock in makes expiry testable without waiting for real time.
+- **Top-k** (`07`, `08`, `17`, `33`, and `TopK` in `wrappers.py`): Finding the busiest IPs, noisiest endpoints or most frequent errors in a log stream is hot-spot detection. A size-k heap does it in O(n log k) memory-light passes, which matters when the log won't fit in RAM.
+
 ## How these were extracted
 
 In the document, every code sample is a one-cell table set in Consolas. All 37 such tables were extracted with python-docx in the order they appear. There is no other monospace text, no code-styled paragraph and no text box. Each file begins with a short comment header (topic, section, source). The code below the header is copied exactly. Blank lines inside the samples are a single space, as in the .docx.
