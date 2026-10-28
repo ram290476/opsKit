@@ -18,6 +18,7 @@ Every module follows four rules: **dry-run by default, idempotent, paginate + ti
 | `opskit.metrics` | `job_metrics()` - duration / success / last-success gauges for batch jobs (Pushgateway) |
 | `opskit.notify` | webhook notifier (URL from env/secret store) |
 | `opskit.checks` | `@check` registry + `run_checks()` -> report with CI exit codes (0 pass, 1 findings, 2 check crashed) |
+| `opskit.logs` | access-log parsing: named-group regex and a `str.split` fast path, top-N 5xx endpoints, ID normalization, error rates, time windows, gzip streaming, optional multiprocessing |
 
 Examples: `examples/ebs_cleanup.py` (multi-account cleanup with guard rails) and `examples/aws_checks.py` (guardrail checks as a CI gate).
 
@@ -88,3 +89,23 @@ update_code(lambda_client, "my-function", package, budget)
 ```
 
 The update helpers are dry-run by default. `build_deployment_package` uses the selected Python executable's `pip` to install requirements into the ZIP; build dependencies for the Lambda OS and architecture when packages contain native extensions.
+
+## Access logs
+
+`opskit.logs` ranks endpoints by server error (HTTP 5xx) in Common or Combined access logs. Malformed lines are counted and skipped. A named-group regex is the default parser; `parser="split"` is the fast path when the layout is fixed (at least 10 fields, numeric status, path at field 6, status at field 8, because the timestamp contains a space).
+
+```python
+from opskit.logs import error_rates, read_lines, top_error_endpoints
+
+ranking, bad = top_error_endpoints(read_lines("access.log"), n=5, normalize=True)
+rates = error_rates(read_lines("access.log"), n=5, min_requests=50)
+```
+
+`normalize=True` drops the query string and replaces all-digit path segments (`/api/orders/123` -> `/api/orders/{id}`), so one route is not split into a separate endpoint per id. `error_rates` divides 5xx responses by total requests and hides paths under `min_requests`, so a single failure does not rank as 100%. On the explainer's 2,000-line sample that is `/checkout` at 12.2% (12 errors in 98 requests), while raw paths put checkout first with 12 errors and normalization makes `/api/orders/{id}` first with 20. `recent` / `--minutes` keep only requests after a cutoff (333 requests in the sample's last 10 minutes). `bucket_by_time` groups the same records into fixed windows.
+
+`read_lines` yields one line at a time. `count_files(..., workers=4)` counts each file in its own process (or splits one plain file on line boundaries) and merges the Counters. Gzip stays a single stream. The explainer's 1.5M-line benchmark on that box was about 325 MB to read the whole file versus 14 MB streaming, with split ahead of the regex and four processes over four files at about 0.21 seconds.
+
+```bash
+python -m opskit.logs access.log access.log.gz --top 5 --rates --min-requests 50 --workers 4
+python -m opskit.logs access.log --minutes 10 --json
+```
