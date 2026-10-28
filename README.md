@@ -3,26 +3,26 @@
 Reusable building blocks for operational Python (SRE / DevOps / platform engineering).
 Every module follows four rules: **dry-run by default, idempotent, paginate + time out everything, structured logs + exit codes.**
 
-| Module | What it gives you |
-|---|---|
-| `opskit.log` | `setup_logging()` -> JSON logs with secret redaction, quiet botocore/urllib3 |
-| `opskit.retry` | `@retry` with capped exponential backoff + full jitter; `is_transient()` for AWS/Azure/GCP/HTTP errors |
-| `opskit.safety` | `ChangeBudget` (dry-run + blast-radius cap), `is_protected(tags)`, `maintenance_window()` |
-| `opskit.aws` | adaptive-retry clients, `assume_role_session`, `paginate`, `enabled_regions`, `fan_out` (partial-failure safe) |
-| `opsclient` | REST API server and console client for AWS inventory/insights and Kubernetes operations |
-| `opskit.inventory` | tagged AWS inventory collection, JSON and optional Excel exporters |
-| `opskit.resource_insights` | service health, child counts, and CloudWatch metric helpers |
-| `opskit.aws_lambda` | package Python code/dependencies for Lambda and guarded runtime/code updates |
-| `opskit.http` | `build_session()` - requests with retries on idempotent verbs and a mandatory timeout |
-| `opskit.streams` | constant-memory file streams: binary chunks, text lines, gzip, JSON Lines |
-| `opskit.http_api` | REST client on `opskit.retry`: timeouts, auth, JSON, pagination, streaming up/down |
-| `opskit.sqs` | SQS send/receive/delete, long poll, batch, FIFO, dead-letter awareness, consumer loop |
-| `opskit.msk` | optional Kafka/MSK producer and consumer (`kafka-python`): IAM, SASL/TLS, JSON, commits |
-| `opskit.k8s` | client loading (in-cluster/kubeconfig), namespace/pod/event listing and pod logs, `rollout_restart`, `wait_for_rollout`, `unhealthy_pods` |
-| `opskit.metrics` | `job_metrics()` - duration / success / last-success gauges for batch jobs (Pushgateway) |
-| `opskit.notify` | webhook notifier (URL from env/secret store) |
-| `opskit.checks` | `@check` registry + `run_checks()` -> report with CI exit codes (0 pass, 1 findings, 2 check crashed) |
-| `opskit.logs` | access-log parsing: named-group regex and a `str.split` fast path, top-N 5xx endpoints, ID normalization, error rates, time windows, gzip streaming, optional multiprocessing |
+| Module | What it gives you | Data structure example (source) |
+|---|---|---|
+| `opskit.log` | `setup_logging()` -> JSON logs with secret redaction, quiet botocore/urllib3 | [`set(...)`](src/opskit/log.py#L9) |
+| `opskit.retry` | `@retry` with capped exponential backoff + full jitter; `is_transient()` for AWS/Azure/GCP/HTTP errors | n/a |
+| `opskit.safety` | `ChangeBudget` (dry-run + blast-radius cap), `is_protected(tags)`, `maintenance_window()` | [`tags = {...}`](src/opskit/safety.py#L48) (dict) |
+| `opskit.aws` | adaptive-retry clients, `assume_role_session`, `paginate`, `enabled_regions`, `fan_out` (partial-failure safe) | [`results: dict[Any, Any] = {}`](src/opskit/aws.py#L65) |
+| `opsclient` | REST API server and console client for AWS inventory/insights and Kubernetes operations | n/a |
+| `opskit.inventory` | tagged AWS inventory collection, JSON and optional Excel exporters | [`sorted(set(regions))`](src/opskit/inventory.py#L58) |
+| `opskit.resource_insights` | service health, child counts, and CloudWatch metric helpers | n/a |
+| `opskit.aws_lambda` | package Python code/dependencies for Lambda and guarded runtime/code updates | n/a |
+| `opskit.http` | `build_session()` - requests with retries on idempotent verbs and a mandatory timeout | n/a |
+| `opskit.streams` | constant-memory file streams: binary chunks, text lines, gzip, JSON Lines | n/a |
+| `opskit.http_api` | REST client on `opskit.retry`: timeouts, auth, JSON, pagination, streaming up/down | n/a |
+| `opskit.sqs` | SQS send/receive/delete, long poll, batch, FIFO, dead-letter awareness, consumer loop | [`encoded: dict[str, dict[str, Any]] = {}`](src/opskit/aws_sqs.py#L138) |
+| `opskit.msk` | optional Kafka/MSK producer and consumer (`kafka-python`): IAM, SASL/TLS, JSON, commits | n/a |
+| `opskit.k8s` | client loading (in-cluster/kubeconfig), namespace/pod/event listing and pod logs, `rollout_restart`, `wait_for_rollout`, `unhealthy_pods` | n/a |
+| `opskit.metrics` | `job_metrics()` - duration / success / last-success gauges for batch jobs (Pushgateway) | n/a |
+| `opskit.notify` | webhook notifier (URL from env/secret store) | n/a |
+| `opskit.checks` | `@check` registry + `run_checks()` -> report with CI exit codes (0 pass, 1 findings, 2 check crashed) | [`_REGISTRY: dict[...] = {}`](src/opskit/checks.py#L46) |
+| `opskit.logs` | access-log parsing: named-group regex and a `str.split` fast path, top-N 5xx endpoints, ID normalization, error rates, time windows, gzip streaming, optional multiprocessing | [`heapq.nlargest(...)`](src/opskit/logs.py#L130), [`Counter()`](src/opskit/logs.py#L260) |
 
 Examples: `examples/ebs_cleanup.py` (multi-account cleanup with guard rails) and `examples/aws_checks.py` (guardrail checks as a CI gate).
 
