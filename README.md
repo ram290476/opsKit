@@ -14,6 +14,10 @@ Every module follows four rules: **dry-run by default, idempotent, paginate + ti
 | `opskit.resource_insights` | service health, child counts, and CloudWatch metric helpers |
 | `opskit.aws_lambda` | package Python code/dependencies for Lambda and guarded runtime/code updates |
 | `opskit.http` | `build_session()` - requests with retries on idempotent verbs and a mandatory timeout |
+| `opskit.streams` | constant-memory file streams: binary chunks, text lines, gzip, JSON Lines |
+| `opskit.http_api` | REST client on `opskit.retry`: timeouts, auth, JSON, pagination, streaming up/down |
+| `opskit.sqs` | SQS send/receive/delete, long poll, batch, FIFO, dead-letter awareness, consumer loop |
+| `opskit.msk` | optional Kafka/MSK producer and consumer (`kafka-python`): IAM, SASL/TLS, JSON, commits |
 | `opskit.k8s` | client loading (in-cluster/kubeconfig), namespace/pod/event listing and pod logs, `rollout_restart`, `wait_for_rollout`, `unhealthy_pods` |
 | `opskit.metrics` | `job_metrics()` - duration / success / last-success gauges for batch jobs (Pushgateway) |
 | `opskit.notify` | webhook notifier (URL from env/secret store) |
@@ -109,3 +113,66 @@ rates = error_rates(read_lines("access.log"), n=5, min_requests=50)
 python -m opskit.logs access.log access.log.gz --top 5 --rates --min-requests 50 --workers 4
 python -m opskit.logs access.log --minutes 10 --json
 ```
+
+## HTTP client and file streams
+
+`opskit.streams` keeps large-file work to one chunk, line, or JSON object. `opskit.http_api.ApiClient` adds timeouts, `opskit.retry` backoff, auth headers, JSON helpers, pagination, and streaming downloads and uploads. POST and PATCH are not retried unless you opt in. More examples are in [docs/http-streams.md](docs/http-streams.md).
+
+```python
+from opskit.http_api import ApiClient, BearerAuth
+from opskit.streams import iter_jsonl, write_jsonl
+
+write_jsonl("events.jsonl", ({"n": n} for n in range(1000)))
+for record in iter_jsonl("events.jsonl"):
+    handle(record)
+
+with ApiClient("https://api.example.com", auth=BearerAuth(token)) as api:
+    for item in api.paginate("/v1/resources", items_key="items", cursor_key="next_cursor"):
+        handle(item)
+    api.download("/v1/export", "export.bin")
+    api.upload("/v1/export", "export.bin", raw=True)
+```
+
+## SQS
+
+`opskit.sqs.SqsQueue` sends, long-polls, deletes, changes visibility, and runs a consumer. Clients use `opskit.aws` (including `assume_role_session`). Deletes and purges follow `ChangeBudget` and are dry-run until `apply=True`. FIFO queues take `group_id` and `dedup_id`. `dead_letter_target()` reads the redrive policy, and the consumer logs when a message is close to that queue. Details and the shutdown rules are in [docs/sqs.md](docs/sqs.md).
+
+```python
+from opskit.aws import assume_role_session
+from opskit.safety import ChangeBudget
+from opskit.sqs import SqsQueue
+
+session = assume_role_session("123456789012", "OrgOps")
+queue = SqsQueue.from_queue_name(
+    "jobs",
+    region="us-east-1",
+    session=session,
+    budget=ChangeBudget(apply=True, max_changes=100),
+)
+queue.send({"job": "cleanup"})
+queue.consume(lambda message: handle(message.json()), wait_seconds=20)
+```
+
+Pass `group_id` and `dedup_id` when the queue URL ends in `.fifo`. Omit them for a standard queue.
+
+## MSK / Kafka
+
+`opskit.msk` is an optional producer and consumer. It uses `kafka-python` rather than `confluent-kafka` because the pure-Python client can be faked in tests without librdkafka or a broker. Install `opskit[kafka]` for the client, and `opskit[msk]` when the process should mint MSK IAM tokens (`aws-msk-iam-sasl-signer-python`). SASL/TLS and IAM configs, commit behavior, and topic helpers are in [docs/kafka.md](docs/kafka.md).
+
+```python
+from opskit.msk import KafkaConfig, KafkaConsumer, KafkaProducer, ensure_topics
+from opskit.safety import ChangeBudget
+
+config = KafkaConfig.for_sasl_tls("b-1.example.com:9096", "ops", password)
+# MSK IAM: KafkaConfig.for_msk_iam(brokers, "us-east-1", session=session)
+
+with KafkaProducer(config) as producer:
+    producer.send_json("events", {"job": "cleanup"}, key="vol-123")
+
+with KafkaConsumer(config, "events", group_id="ops") as consumer:
+    consumer.consume(lambda record: handle(record.value))
+
+ensure_topics(["events"], config=config, replication_factor=3, budget=ChangeBudget(apply=True))
+```
+
+Creating a topic is dry-run unless the budget is applying changes. The consumer commits the next offset only after the handler returns.
