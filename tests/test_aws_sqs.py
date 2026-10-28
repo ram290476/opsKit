@@ -10,7 +10,7 @@ from moto import mock_aws
 from opskit.aws import assume_role_session
 from opskit.safety import BlastRadiusExceeded, ChangeBudget
 from opskit.shutdown import install_stop_signals
-from opskit.sqs import OutgoingMessage, SqsBatchError, SqsMessage, SqsQueue, list_queue_urls
+from opskit.aws_sqs import OutgoingMessage, SqsBatchError, SqsMessage, SqsQueue, list_queue_urls
 
 
 def _queue(name="jobs", **attributes):
