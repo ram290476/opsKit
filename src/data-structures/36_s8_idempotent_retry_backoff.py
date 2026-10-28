@@ -2,6 +2,10 @@
 # Section: 11. SRE/Platform Day-to-Day Scripting & Automation
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Retry temporary failures without overwhelming a service,
+# and avoid repeating work for duplicate requests.
+# Implementation (developer): Generate capped exponential backoff with jitter
+# and cache idempotency results until their monotonic-clock TTL expires.
 
 import random
 import time

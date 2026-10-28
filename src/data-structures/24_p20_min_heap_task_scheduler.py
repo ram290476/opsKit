@@ -2,6 +2,10 @@
 # Section: 9. Specialized Structures: Trie, Scheduler Heap, Ring Buffer, Bloom Filter
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Run tasks when they are due, including tasks that repeat,
+# and calculate the shortest schedule with a required cooldown.
+# Implementation (developer): Order scheduled tasks by run time in a min-heap
+# with a sequence tie-breaker; compute cooldown length from task frequencies.
 
 import heapq
 import itertools

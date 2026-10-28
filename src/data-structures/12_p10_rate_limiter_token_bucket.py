@@ -3,6 +3,10 @@
 # Block: Token bucket
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Limit how quickly requests are accepted while still
+# allowing a short burst after a quiet period.
+# Implementation (developer): Refill tokens from elapsed monotonic time up to
+# a capacity, then accept a request only if its token cost is available.
 
 import time
  

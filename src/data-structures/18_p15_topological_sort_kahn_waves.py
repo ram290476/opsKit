@@ -3,6 +3,10 @@
 # Block: Kahn's algorithm with parallel waves
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Work out which services can be deployed first when some
+# services depend on others, and report dependency cycles.
+# Implementation (developer): Use Kahn's indegree algorithm to emit parallel
+# deployment waves; if nodes remain, raise an error for the cycle.
 
 from collections import defaultdict
  

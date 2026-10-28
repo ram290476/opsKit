@@ -3,6 +3,9 @@
 # Block: DFS three-color cycle finder (returns the actual cycle)
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Find an actual loop in a set of dependency links.
+# Implementation (developer): Run depth-first search with unvisited, active,
+# and complete colors; a link to an active node identifies the cycle path.
 
 def find_cycle(graph):
     """graph: {node: [deps]}. Returns a cycle or None."""

@@ -2,6 +2,10 @@
 # Section: 11. SRE/Platform Day-to-Day Scripting & Automation
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Handle incoming work without accepting more than the
+# queue can hold, retry failures, and retain repeatedly failing messages.
+# Implementation (developer): Bound a deque for backpressure, requeue up to a
+# retry limit, then record failed messages and errors in a dead-letter queue.
 
 from collections import deque
  

@@ -2,6 +2,10 @@
 # Section: 8. Graphs: Topological Sort, BFS/DFS, Dijkstra, Union-Find
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Group hosts into connected network partitions based on
+# links between them.
+# Implementation (developer): Use disjoint-set union with path halving and
+# union by size, then collect hosts by representative.
 
 class UnionFind:
     def __init__(self, nodes):

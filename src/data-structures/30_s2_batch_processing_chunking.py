@@ -2,6 +2,10 @@
 # Section: 11. SRE/Platform Day-to-Day Scripting & Automation
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Process a large or streaming set of hosts in manageable
+# groups and stop if too many operations fail.
+# Implementation (developer): Yield chunks lazily with islice, process each
+# batch, and compare the cumulative failure ratio with a threshold.
 
 from itertools import islice
  

@@ -2,6 +2,9 @@
 # Section: 7. Logs & Sliding Windows
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Calculate what share of recent requests or events failed.
+# Implementation (developer): Keep timestamped events in a deque, maintain an
+# error count as old events expire, and compute the current-window ratio.
 
 from collections import deque
  

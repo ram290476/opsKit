@@ -2,6 +2,9 @@
 # Section: 4. Heaps & Top-K
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Find the k values that occur most often in a list.
+# Implementation (developer): Compare a size-k min-heap approach with
+# frequency-indexed buckets built from a Counter.
 
 import heapq
 from collections import Counter

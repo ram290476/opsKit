@@ -3,6 +3,10 @@
 # Block: Option B: start/end sweep with a counter (peak overlap)
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Find the fewest virtual machines needed when jobs can run
+# at the same time.
+# Implementation (developer): Sweep sorted start/end events, processing ends
+# before starts at equal times, and track the peak concurrent job count.
 
 def min_vms_sweep(jobs):
     starts = sorted(s for s, _ in jobs)

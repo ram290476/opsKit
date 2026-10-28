@@ -2,6 +2,10 @@
 # Section: 3. Intervals & Sweep Line
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Combine overlapping or touching time ranges into a
+# shorter list of ranges that covers the same time.
+# Implementation (developer): Sort by start, then merge each interval into the
+# last output interval when their boundaries overlap or touch.
 
 def merge(intervals):
     out = []

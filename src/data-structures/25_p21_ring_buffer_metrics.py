@@ -2,6 +2,10 @@
 # Section: 9. Specialized Structures: Trie, Scheduler Heap, Ring Buffer, Bloom Filter
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Keep only the newest measurements and calculate their
+# average without storing an ever-growing history.
+# Implementation (developer): Write into a fixed-size circular array and
+# maintain a running total as old values are overwritten.
 
 from collections import deque
  

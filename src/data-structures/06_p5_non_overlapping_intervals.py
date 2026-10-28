@@ -2,6 +2,10 @@
 # Section: 3. Intervals & Sweep Line
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Find the fewest time ranges to remove so the remaining
+# ranges do not overlap.
+# Implementation (developer): Greedily keep intervals ordered by end time
+# whenever they start at or after the last kept interval's end.
 
 def erase_overlap_intervals(intervals):
     removed, prev_end = 0, float("-inf")

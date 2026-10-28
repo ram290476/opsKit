@@ -2,6 +2,10 @@
 # Section: 11. SRE/Platform Day-to-Day Scripting & Automation
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Decide whether a service is up, degraded, or down from
+# recent health checks of its instances.
+# Implementation (developer): Keep a bounded probe history per instance,
+# apply a failure threshold, and aggregate healthy instances using quorum.
 
 from collections import defaultdict, deque
  

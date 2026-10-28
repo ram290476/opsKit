@@ -3,6 +3,10 @@
 # Block: Version 2: hashmap + doubly linked list (what interviewers usually want)
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Build a cache that keeps recently used values and removes
+# the least recently used value when capacity is reached.
+# Implementation (developer): Combine a key-to-node hashmap with a doubly
+# linked list so lookup, recency updates, and eviction are constant-time.
 
 class Node:
     __slots__ = ("key", "val", "prev", "next")

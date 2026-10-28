@@ -2,6 +2,10 @@
 # Section: 10. Hashmap & Stack Fundamentals
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Find two numbers that add to a target, and see common
+# hashmap tasks such as grouping, counting, and ordered deduplication.
+# Implementation (developer): Store previously seen values and indices to
+# solve two-sum in one pass; demonstrate defaultdict, Counter, and dict order.
 
 from collections import Counter, defaultdict
  

@@ -2,6 +2,10 @@
 # Section: 10. Hashmap & Stack Fundamentals
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Check that brackets are balanced, including in config
+# text where bracket characters inside quoted strings should be ignored.
+# Implementation (developer): Use a stack to match bracket types and retain
+# opening locations so mismatches can be reported with line and column.
 
 PAIRS = {")": "(", "]": "[", "}": "{"}
  

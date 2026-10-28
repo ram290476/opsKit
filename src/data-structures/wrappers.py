@@ -1,7 +1,9 @@
-"""Reusable wrappers for the most common cross-cutting patterns in the samples.
+"""Reusable helpers for common problems shown in the sample scripts.
 
-See ANALYSIS.md for the evidence and the full design. Three wrappers are
-implemented here (standard library only, Python 3.8+):
+For learners: these helpers turn repeated sample-code patterns into reusable
+building blocks for clocks, expiring caches, and keeping the largest items.
+
+For developers: the standard-library-only implementations (Python 3.8+) are:
 
 * ``FakeClock`` / ``Clock``: time injection. Replaces the ``t = [0];
   clock=lambda: t[0]`` and ``sleep=slept.append`` test hacks used in samples

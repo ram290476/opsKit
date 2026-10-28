@@ -2,6 +2,10 @@
 # Section: 11. SRE/Platform Day-to-Day Scripting & Automation
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Summarize logs by finding routes with the most server
+# errors and their high-percentile response latency.
+# Implementation (developer): Parse key-value fields with regex, aggregate
+# counts and latency samples, then calculate p95 and top error routes.
 
 import math
 import re

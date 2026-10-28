@@ -2,6 +2,10 @@
 # Section: 6. Traffic: Rate Limiting, Consistent Hashing, Load Balancing
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Assign keys to servers so adding or removing a server
+# moves only some keys instead of reshuffling them all.
+# Implementation (developer): Place each server's virtual nodes on a sorted
+# hash ring and use binary search to find the next owner for a key.
 
 import bisect
 import hashlib

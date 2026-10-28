@@ -2,6 +2,10 @@
 # Section: 5. Caches (LRU / LFU)
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Cache values and, when full, remove the value used least
+# often; break frequency ties by removing the least recently used.
+# Implementation (developer): Track values and frequencies in maps, with
+# ordered frequency buckets and a minimum-frequency pointer.
 
 from collections import defaultdict, OrderedDict
  

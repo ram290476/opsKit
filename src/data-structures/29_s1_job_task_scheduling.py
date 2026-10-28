@@ -2,6 +2,10 @@
 # Section: 11. SRE/Platform Day-to-Day Scripting & Automation
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Assign prioritized jobs to workers and check whether a
+# job's time range conflicts with a deployment freeze.
+# Implementation (developer): Dispatch from a priority heap to workers ordered
+# by availability, and binary-search sorted merged freeze intervals.
 
 import bisect
 import heapq

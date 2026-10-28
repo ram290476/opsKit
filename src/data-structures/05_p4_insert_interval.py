@@ -2,6 +2,10 @@
 # Section: 3. Intervals & Sweep Line
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Add one time range to an already sorted, non-overlapping
+# list while combining any ranges it intersects.
+# Implementation (developer): Copy earlier intervals, expand the new interval
+# across overlaps, then append it and the untouched later intervals.
 
 def insert(intervals, new):
     """intervals: sorted, non-overlapping."""

@@ -2,6 +2,10 @@
 # Section: 11. SRE/Platform Day-to-Day Scripting & Automation
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Reuse recently computed results and avoid sending the
+# same alert repeatedly during a short time window.
+# Implementation (developer): Cache function results by arguments with TTL
+# expiry, and deduplicate alerts by fingerprint and last-sent timestamp.
 
 import functools
 import time

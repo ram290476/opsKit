@@ -2,6 +2,10 @@
 # Section: 4. Heaps & Top-K
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Keep track of the kth-largest value, including as new
+# numbers arrive one at a time.
+# Implementation (developer): Maintain a min-heap of at most k largest values;
+# its root is the kth-largest once the heap contains k values.
 
 import heapq
  

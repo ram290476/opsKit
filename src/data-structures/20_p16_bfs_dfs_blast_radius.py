@@ -2,6 +2,10 @@
 # Section: 8. Graphs: Topological Sort, BFS/DFS, Dijkstra, Union-Find
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): See which services may be affected if one service fails,
+# and optionally limit the result to nearby dependency levels.
+# Implementation (developer): Reverse dependency edges and run BFS for
+# hop-distance results; also provide iterative DFS reachability.
 
 from collections import defaultdict, deque
  

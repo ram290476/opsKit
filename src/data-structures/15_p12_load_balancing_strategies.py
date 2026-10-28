@@ -2,6 +2,9 @@
 # Section: 6. Traffic: Rate Limiting, Consistent Hashing, Load Balancing
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Choose which server should receive each new request.
+# Implementation (developer): Compare rotating round-robin selection,
+# smooth weighted round-robin scheduling, and least-active-connection tracking.
 
 import itertools
 import random

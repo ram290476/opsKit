@@ -3,6 +3,10 @@
 # Block: Option A: sort + min-heap (also tells you WHEN VMs free up)
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Find the fewest virtual machines needed to run jobs that
+# may overlap in time.
+# Implementation (developer): Sort jobs by start time and track VM release
+# times in a min-heap; reuse the earliest-free VM when possible.
 
 import heapq
  

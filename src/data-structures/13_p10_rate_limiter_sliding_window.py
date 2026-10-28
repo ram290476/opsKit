@@ -3,6 +3,10 @@
 # Block: Sliding window log and sliding window counter
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Limit requests over recent time so a fixed time boundary
+# does not permit an unexpectedly large burst.
+# Implementation (developer): Demonstrate an exact timestamp deque and a
+# lower-memory counter that estimates traffic across adjacent windows.
 
 import time
 from collections import deque

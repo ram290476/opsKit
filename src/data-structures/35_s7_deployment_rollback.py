@@ -2,6 +2,10 @@
 # Section: 11. SRE/Platform Day-to-Day Scripting & Automation
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Track deployed versions so a release can be rolled back
+# when a gradual canary rollout shows too many errors.
+# Implementation (developer): Store deployment history as a stack and compare
+# canary error rates with a baseline, request minimum, and absolute floor.
 
 class Deployer:
     def __init__(self, initial):

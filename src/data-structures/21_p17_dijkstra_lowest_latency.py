@@ -2,6 +2,10 @@
 # Section: 8. Graphs: Topological Sort, BFS/DFS, Dijkstra, Union-Find
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Find the lowest total network latency from one service
+# to every reachable service.
+# Implementation (developer): Use Dijkstra's algorithm with a min-heap;
+# edge weights must be non-negative, and outdated heap entries are skipped.
 
 import heapq
  

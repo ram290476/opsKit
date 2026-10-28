@@ -2,6 +2,10 @@
 # Section: 7. Logs & Sliding Windows
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Read access logs to find the IP addresses making the
+# most requests, optionally counting only server errors.
+# Implementation (developer): Match log fields with a compiled regex, count
+# valid records with Counter, and separately report malformed lines.
 
 import re
 from collections import Counter

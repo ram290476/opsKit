@@ -2,6 +2,10 @@
 # Section: 9. Specialized Structures: Trie, Scheduler Heap, Ring Buffer, Bloom Filter
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Send a request path to the backend registered for its
+# most specific matching route prefix.
+# Implementation (developer): Store path segments in a trie, support wildcard
+# segment lookup, and retain the deepest backend match.
 
 class TrieNode:
     __slots__ = ("children", "backend")

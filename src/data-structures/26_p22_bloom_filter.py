@@ -2,6 +2,10 @@
 # Section: 9. Specialized Structures: Trie, Scheduler Heap, Ring Buffer, Bloom Filter
 # Source: /workspace/interview_prep/Data_Structures_Interview_Questions_Platform_SRE.docx
 # (Code below is copied verbatim from the document.)
+# Scenario (novice): Quickly check whether an item might have been seen
+# before, using much less memory than storing every item.
+# Implementation (developer): Set multiple deterministic bit positions per
+# item; membership can have false positives but never false negatives.
 
 import hashlib
 import math
