@@ -14,7 +14,7 @@ For developers: the standard-library-only implementations (Python 3.8+) are:
 * ``TopK`` / ``top_k``: a bounded min-heap that keeps the k largest items.
   It covers the streaming top-k code in 07, 08, 17 and 33.
 
-The original 37 sample files are intentionally left unchanged.
+The sample scripts remain standalone and retain their original implementations.
 """
 from __future__ import annotations
 
