@@ -73,3 +73,4 @@ In the document, every code sample is a one-cell table set in Consolas. All 37 s
 - [`tests/test_wrappers.py`](tests/test_wrappers.py): unit tests, plus equivalence tests that check the wrappers against the original sample classes. Run them with `python tests/test_wrappers.py` or `pytest tests/`.
 
 The 37 sample files are unchanged. The wrappers show how the samples *could* be refactored.
+See also the [AIOps/SRE mock-interview solutions](aiops-mock-interview/README.md).
