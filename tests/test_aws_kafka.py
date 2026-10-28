@@ -6,7 +6,7 @@ import types
 
 import pytest
 
-from opskit.msk import (
+from opskit.aws_msk import (
     KafkaConfig,
     KafkaConsumer,
     KafkaDependencyError,
